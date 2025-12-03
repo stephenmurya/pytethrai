@@ -85,7 +85,9 @@ def chat_send(request):
         # Save assistant message after stream
         Message.objects.create(chat=chat, role='assistant', content=full_response)
         
-    return StreamingHttpResponse(generate(), content_type='text/plain')
+    response = StreamingHttpResponse(generate(), content_type='text/plain')
+    response['Chat-Id'] = chat_id
+    return response
 
 @api_view(['GET'])
 def chat_history(request):
@@ -101,3 +103,25 @@ def get_chat(request, chat_id):
         return Response(serializer.data)
     except Chat.DoesNotExist:
         return Response({"error": "Chat not found"}, status=404)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_models(request):
+    """Get available OpenRouter models with fallback to default list."""
+    from .models_service import get_models_with_fallback
+    
+    try:
+        models, error_msg = get_models_with_fallback()
+        
+        response_data = {
+            "models": models,
+            "error": error_msg  # Will be None if API succeeded
+        }
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        return Response({
+            "error": f"Failed to retrieve models: {str(e)}",
+            "models": []
+        }, status=500)
