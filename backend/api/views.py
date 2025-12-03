@@ -87,6 +87,43 @@ def chat_send(request):
         
     response = StreamingHttpResponse(generate(), content_type='text/plain')
     response['Chat-Id'] = chat_id
+
+    # Generate title in background if it's a new chat (or title is default)
+    if len(messages) <= 2:  # User message + (optional) system prompt
+        def generate_title():
+            try:
+                import requests
+                import os
+                
+                API_KEY = os.getenv('OPENROUTER_API_KEY')
+                if not API_KEY:
+                    return
+
+                headers = {
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://tethrai.com", 
+                    "X-Title": "TethrAI"
+                }
+                
+                prompt = f"Generate a very short, concise title (max 5 words) for a chat that starts with this message: '{content}'. Return ONLY the title, no quotes or extra text."
+                
+                data = {
+                    "model": "google/gemini-2.0-flash-exp:free",
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                
+                resp = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+                if resp.status_code == 200:
+                    title = resp.json()['choices'][0]['message']['content'].strip().strip('"')
+                    chat.title = title
+                    chat.save()
+            except Exception as e:
+                print(f"Error generating title: {e}")
+
+        import threading
+        threading.Thread(target=generate_title).start()
+
     return response
 
 @api_view(['GET'])

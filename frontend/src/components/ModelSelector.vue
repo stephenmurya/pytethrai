@@ -57,6 +57,7 @@
           <button
             v-for="model in filteredModels"
             :key="model.id"
+            :id="`model-${model.id}`"
             @click="selectModel(model.id)"
             class="w-full px-4 py-3 hover:bg-zinc-800/50 transition text-left flex items-start gap-3 group"
           >
@@ -81,28 +82,28 @@
 
             <!-- Capability Icons -->
             <div class="flex items-center gap-1.5 flex-shrink-0">
-              <Home 
+              <img 
                 v-if="model.capabilities.vision" 
-                :size="14" 
-                class="text-zinc-400"
+                src="/assets/images/Image Input.png" 
+                class="w-3.5 h-3.5 opacity-60"
                 title="Vision support"
               />
-              <Zap 
+              <img 
                 v-if="model.capabilities.fast" 
-                :size="14" 
-                class="text-zinc-400"
+                src="/assets/images/Reasoning.png" 
+                class="w-3.5 h-3.5 opacity-60"
                 title="Fast model"
               />
-              <Code 
+              <img 
                 v-if="model.capabilities.code" 
-                :size="14" 
-                class="text-zinc-400"
+                src="/assets/images/Content Generation.png" 
+                class="w-3.5 h-3.5 opacity-60"
                 title="Code support"
               />
-              <Moon 
+              <img 
                 v-if="model.capabilities.free" 
-                :size="14" 
-                class="text-zinc-400"
+                src="/assets/images/Object Generation.png" 
+                class="w-3.5 h-3.5 opacity-60"
                 title="Free tier"
               />
             </div>
@@ -129,16 +130,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '../stores/chat';
 import { 
   Check, 
   ChevronDown, 
-  Home, 
-  Zap, 
-  Code, 
-  Moon, 
   AlertCircle,
   Sparkles,
   Circle
@@ -168,8 +165,20 @@ const filteredModels = computed(() => {
   );
 });
 
-const toggleDropdown = () => {
+const toggleDropdown = async () => {
   isOpen.value = !isOpen.value;
+  
+  if (isOpen.value) {
+    await nextTick();
+    scrollToSelected();
+  }
+};
+
+const scrollToSelected = () => {
+  const selectedElement = document.getElementById(`model-${selectedModel.value}`);
+  if (selectedElement) {
+    selectedElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 };
 
 const closeDropdown = () => {

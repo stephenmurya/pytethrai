@@ -2,8 +2,8 @@
   <div class="min-h-screen flex items-center justify-center bg-[#212121]">
     <div class="w-full max-w-md p-8 space-y-6 bg-[#2a2a2a] rounded-2xl border border-zinc-800">
       <div class="text-center">
-        <div class="w-12 h-12 bg-white rounded-full mx-auto mb-4 flex items-center justify-center">
-          <span class="text-black text-xl font-bold">T</span>
+        <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+          <img src="/assets/images/tethrai-logo.png" alt="TethrAI Logo" class="w-full h-full object-contain" />
         </div>
         <h1 class="text-3xl font-bold text-white">Create an account</h1>
         <p class="text-zinc-400 mt-2">Get started with Tethr AI</p>

@@ -9,8 +9,8 @@
       <!-- Sidebar Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
         <div class="flex items-center gap-2">
-          <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center">
-            <span class="text-black text-xs font-bold">T</span>
+          <div class="w-8 h-8 flex items-center justify-center">
+            <img src="/assets/images/tethrai-logo.png" alt="TethrAI Logo" class="w-full h-full object-contain" />
           </div>
           <span class="font-semibold">Tethr AI</span>
         </div>
@@ -94,29 +94,31 @@
       </header>
 
       <!-- Messages Area -->
-      <div class="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto">
+      <div class="flex-1 flex flex-col px-4 overflow-y-auto">
         <!-- Empty State -->
-        <div v-if="!currentChat || currentChat.messages.length === 0" class="max-w-3xl w-full">
-          <div class="text-center mb-8">
-            <h1 class="text-3xl font-semibold mb-2">Hello there!</h1>
-            <p class="text-zinc-500 text-lg">How can I help you today?</p>
-          </div>
+        <div v-if="!currentChat || currentChat.messages.length === 0" class="flex-1 flex flex-col items-center justify-center w-full">
+          <div class="max-w-3xl w-full">
+            <div class="text-center mb-8">
+              <h1 class="text-3xl font-semibold mb-2">Hello there!</h1>
+              <p class="text-zinc-500 text-lg">How can I help you today?</p>
+            </div>
 
-          <!-- Suggestion Chips -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-            <button 
-              v-for="chip in suggestionChips" 
-              :key="chip.id"
-              @click="userInput = chip.text"
-              class="text-left p-4 rounded-xl border border-zinc-700 bg-[#2a2a2a] hover:bg-[#333] text-sm transition"
-            >
-              {{ chip.text }}
-            </button>
+            <!-- Suggestion Chips -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+              <button 
+                v-for="chip in suggestionChips" 
+                :key="chip.id"
+                @click="userInput = chip.text"
+                class="text-left p-4 rounded-xl border border-zinc-700 bg-[#2a2a2a] hover:bg-[#333] text-sm transition"
+              >
+                {{ chip.text }}
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Chat Messages -->
-        <div v-else class="max-w-4xl w-full space-y-4 py-8 px-4">
+        <div v-else class="max-w-4xl w-full mx-auto space-y-4 py-8">
           <div v-for="message in currentChat.messages" :key="message.id">
             <!-- User Message (Right-aligned) -->
             <div v-if="message.role === 'user'" class="flex justify-end items-start gap-2">

@@ -107,7 +107,20 @@ export const useChatStore = defineStore("chat", () => {
 			}
 
 			// Response is streaming text
-			return response.data;
+			const fullResponse = response.data;
+			
+			// Add assistant message to current chat
+			if (currentChat.value) {
+				const assistantMsg: Message = {
+					id: Date.now().toString(), // Temporary ID
+					role: 'assistant',
+					content: fullResponse,
+					created_at: new Date().toISOString()
+				};
+				currentChat.value.messages.push(assistantMsg);
+			}
+
+			return fullResponse;
 		} catch (error) {
 			console.error("Send message failed", error);
 			return null;
