@@ -7,6 +7,7 @@ export interface Message {
 	role: "user" | "assistant" | "system";
 	content: string;
 	created_at: string;
+	is_saved?: boolean;
 }
 
 export interface Chat {
@@ -31,6 +32,8 @@ export interface AIModel {
 	context_length: number;
 	capabilities: ModelCapabilities;
 }
+
+import { useTeamStore } from "./teams";
 
 export const useChatStore = defineStore("chat", () => {
 	const currentChat = ref<Chat | null>(null);
@@ -64,8 +67,14 @@ export const useChatStore = defineStore("chat", () => {
 		}
 
 		try {
+            const teamStore = useTeamStore();
+            let url = "/api/chat/send/";
+            if (teamStore.currentWorkspace) {
+                url += `?workspace=${teamStore.currentWorkspace.id}`;
+            }
+
 			const response = await axios.post(
-				"/api/chat/send/",
+				url,
 				{
 					content,
 					chatId,
@@ -131,7 +140,12 @@ export const useChatStore = defineStore("chat", () => {
 
 	async function getChatHistory() {
 		try {
-			const response = await axios.get("/api/chat/history/");
+            const teamStore = useTeamStore();
+            let url = "/api/chat/history/";
+            if (teamStore.currentWorkspace) {
+                url += `?workspace=${teamStore.currentWorkspace.id}`;
+            }
+			const response = await axios.get(url);
 			chatHistory.value = response.data;
 		} catch (error) {
 			console.error("Get chat history failed", error);

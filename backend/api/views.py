@@ -11,6 +11,17 @@ from .ai import stream_chat_response
 import json
 import uuid
 
+# Pricing Dict (Cost per 1k tokens)
+# Note: These are rough estimates for MVP
+MODEL_PRICING = {
+    'openai/gpt-3.5-turbo': {'input': 0.0005, 'output': 0.0015},
+    'openai/gpt-4': {'input': 0.03, 'output': 0.06},
+    'google/gemini-pro': {'input': 0.000125, 'output': 0.000375},
+    'anthropic/claude-3-opus': {'input': 0.015, 'output': 0.075},
+}
+
+DEFAULT_PRICING = {'input': 0.001, 'output': 0.002}
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -52,14 +63,36 @@ def chat_send(request):
     if not content:
         return Response({"error": "Content is required"}, status=400)
         
+    
+    # Resolve Workspace Context
+    workspace_id = request.query_params.get('workspace')
+    final_workspace = None
+    if workspace_id:
+        try:
+            from teams.models import WorkspaceMember, Workspace
+            if WorkspaceMember.objects.filter(workspace_id=workspace_id, user=request.user).exists():
+                final_workspace = Workspace.objects.get(id=workspace_id)
+        except Exception as e:
+            print(f"Error resolving workspace: {e}")
+
     # Get or create chat
     if chat_id:
         try:
-            chat = Chat.objects.get(id=chat_id, user=request.user)
+            chat = Chat.objects.get(id=chat_id)
+            
+            # Access Verification
+            has_access = (chat.user == request.user)
+            if not has_access and chat.workspace:
+                 from teams.models import WorkspaceMember
+                 has_access = WorkspaceMember.objects.filter(workspace=chat.workspace, user=request.user).exists()
+            
+            if not has_access:
+                 return Response({"error": "Access denied"}, status=403)
+
         except Chat.DoesNotExist:
             return Response({"error": "Chat not found"}, status=404)
     else:
-        chat = Chat.objects.create(user=request.user, title=content[:30])
+        chat = Chat.objects.create(user=request.user, title=content[:30], workspace=final_workspace)
         chat_id = str(chat.id)
 
     # Save user message
@@ -84,6 +117,37 @@ def chat_send(request):
         
         # Save assistant message after stream
         Message.objects.create(chat=chat, role='assistant', content=full_response)
+        
+        # Post-stream processing: Logging
+        try:
+            # 1. Estimate Tokens
+            # Simple char-count estimation (1 token ~= 4 chars)
+            input_tokens = len(content) // 4  # content is user prompt from outer scope
+            output_tokens = len(full_response) // 4
+            
+            # 2. Calculate Cost
+            pricing = MODEL_PRICING.get(model, DEFAULT_PRICING)
+            input_cost = (input_tokens / 1000) * pricing['input']
+            output_cost = (output_tokens / 1000) * pricing['output']
+            total_cost = input_cost + output_cost
+            
+            
+            # 3. Get Workspace Context
+            # Already resolved in outer scope as final_workspace
+            
+            # 4. Create Log
+            from analytics.models import UsageLog
+            UsageLog.objects.create(
+                user=request.user,
+                workspace=final_workspace,
+                model_name=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost_estimate=total_cost
+            )
+            
+        except Exception as e:
+            print(f"Error logging usage: {e}")
         
     response = StreamingHttpResponse(generate(), content_type='text/plain')
     response['Chat-Id'] = chat_id
@@ -128,14 +192,37 @@ def chat_send(request):
 
 @api_view(['GET'])
 def chat_history(request):
-    chats = Chat.objects.filter(user=request.user).order_by('-updated_at')
+    workspace_id = request.query_params.get('workspace')
+    
+    if workspace_id:
+        # Verify Membership for Collaboration
+        from teams.models import WorkspaceMember
+        if not WorkspaceMember.objects.filter(workspace_id=workspace_id, user=request.user).exists():
+             return Response({"error": "Access denied"}, status=403)
+
+        # Shared: Return ALL chats in this workspace (collaboration mode)
+        chats = Chat.objects.filter(workspace_id=workspace_id).order_by('-updated_at')
+    else:
+        # Personal view - show PRIVATE chats (no workspace)
+        chats = Chat.objects.filter(user=request.user, workspace__isnull=True).order_by('-updated_at')
+        
     serializer = ChatSerializer(chats, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
 def get_chat(request, chat_id):
     try:
-        chat = Chat.objects.get(id=chat_id, user=request.user)
+        chat = Chat.objects.get(id=chat_id)
+        
+        # Access Verification
+        has_access = (chat.user == request.user)
+        if not has_access and chat.workspace:
+             from teams.models import WorkspaceMember
+             has_access = WorkspaceMember.objects.filter(workspace=chat.workspace, user=request.user).exists()
+        
+        if not has_access:
+             return Response({"error": "Access denied"}, status=403)
+
         serializer = ChatSerializer(chat)
         return Response(serializer.data)
     except Chat.DoesNotExist:

@@ -8,26 +8,36 @@
     >
       <!-- Sidebar Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 flex items-center justify-center">
-            <img src="/assets/images/tethrai-logo.png" alt="TethrAI Logo" class="w-full h-full object-contain" />
-          </div>
-          <span class="font-semibold">Tethr AI</span>
+        <div class="flex items-center gap-2 w-full pr-4">
+           <WorkspaceSelector class="w-full" />
         </div>
         <div class="flex gap-1">
-          <button class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition">
+          <!-- <button class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-          </button>
+          </button> -->
           <button @click="startNewChat" class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
           </button>
-          <button class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition">
+          <!-- <button class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
-          </button>
-          <button class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-          </button>
+          </button> -->
+          <!-- Removed Obsolete Links -->
         </div>
+      </div>
+      
+      <!-- Navigation Links -->
+      <div class="px-3 py-2 space-y-1">
+          <!-- Analytics (Always) -->
+          <router-link to="/analytics" class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition group">
+            <BarChart2 :size="18" />
+            <span>Analytics</span>
+          </router-link>
+          
+          <!-- Library (Workspace Only) -->
+          <router-link v-if="currentWorkspace" to="/library" class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition group">
+            <Book :size="18" />
+            <span>Library</span>
+          </router-link>
       </div>
 
       <!-- Chat History -->
@@ -132,6 +142,16 @@
               >
                 <Copy :size="14" />
               </button>
+              <button 
+                @click="toggleStar(message)"
+                :class="[
+                  'p-1.5 transition opacity-0 group-hover:opacity-100',
+                  message.is_saved ? 'text-yellow-400 fill-current' : 'text-zinc-500 hover:text-zinc-300'
+                ]"
+                title="Save"
+              >
+                <Star :size="14" />
+              </button>
             </div>
 
             <!-- AI Message (Left-aligned) -->
@@ -151,6 +171,16 @@
                     title="Copy"
                   >
                     <Copy :size="16" />
+                  </button>
+                  <button 
+                    @click="toggleStar(message)"
+                    :class="[
+                      'p-1.5 transition rounded',
+                      message.is_saved ? 'text-yellow-400 fill-current' : 'text-zinc-500 hover:text-zinc-300'
+                    ]"
+                    title="Save"
+                  >
+                    <Star :size="16" />
                   </button>
                   <button 
                     @click="handleVote(message.id, 'up')"
@@ -239,12 +269,14 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { useChatStore } from "../stores/chat";
+import { useTeamStore } from "../stores/teams";
 import ModelSelector from "../components/ModelSelector.vue";
-import { Copy, ThumbsUp, ThumbsDown, Sparkles } from 'lucide-vue-next';
+import WorkspaceSelector from "../components/WorkspaceSelector.vue";
+import { Copy, ThumbsUp, ThumbsDown, Sparkles, Star, BarChart2, Book } from 'lucide-vue-next';
 import { Marked } from 'marked';
 import { markedHighlight } from "marked-highlight";
 import hljs from 'highlight.js';
@@ -252,10 +284,12 @@ import 'highlight.js/styles/github-dark.css';
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
+const teamStore = useTeamStore();
 const router = useRouter();
 
 const { user } = storeToRefs(authStore);
 const { currentChat, chatHistory, isStreaming, messageVotes } = storeToRefs(chatStore);
+const { currentWorkspace } = storeToRefs(teamStore);
 
 const userInput = ref("");
 const streamingMessage = ref("");
@@ -296,6 +330,48 @@ const handleVote = (messageId: string, vote: 'up' | 'down') => {
   chatStore.voteMessage(messageId, vote);
 };
 
+const toggleStar = async (message: any) => {
+  // Optimistic update
+  const originalState = message.is_saved;
+  message.is_saved = !originalState;
+
+  try {
+    const response = await fetch('/api/knowledge/library/star/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add auth token if needed, or rely on cookie if using session auth
+        'X-CSRFToken': getCookie('csrftoken') || '',
+      },
+      body: JSON.stringify({ message_id: message.id }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to toggle star');
+    }
+  } catch (error) {
+    console.error('Error toggling star:', error);
+    // Revert state
+    message.is_saved = originalState;
+    // Show error toast (optional)
+  }
+};
+
+function getCookie(name: string) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
 const suggestionChips = [
 	{ id: 1, text: "What are the advantages of using Next.js?" },
 	{ id: 2, text: "Write code to demonstrate Dijkstra's algorithm" },
@@ -305,6 +381,20 @@ const suggestionChips = [
 
 onMounted(async () => {
 	await chatStore.getChatHistory();
+    
+    // Check for prompt in query (from Library)
+    const prompt = router.currentRoute.value.query.prompt;
+    if (prompt) {
+        userInput.value = prompt as string;
+        // Clean URL
+        router.replace({ query: {} });
+    }
+});
+
+watch(currentWorkspace, async () => {
+    // Refresh chat history when workspace changes
+    chatStore.clearCurrentChat(); // Optional: clear active chat to avoid confusion
+    await chatStore.getChatHistory();
 });
 
 const toggleSidebar = () => {

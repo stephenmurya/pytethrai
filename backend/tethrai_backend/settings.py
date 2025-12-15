@@ -40,6 +40,9 @@ INSTALLED_APPS = [
 
     # Local
     'api',
+    'knowledge_base',
+    'teams',
+    'analytics',
 ]
 
 MIDDLEWARE = [
