@@ -63,14 +63,7 @@
 
       <!-- Guest Account Card -->
       <div class="p-3 border-t border-zinc-800">
-        <div class="bg-[#2a2a2a] rounded-lg p-4 mb-3">
-          <h3 class="font-semibold text-sm mb-1">Guest Account</h3>
-          <p class="text-xs text-zinc-400 mb-3">Limited to 2 messages. Sign up for unlimited access.</p>
-          <div class="flex gap-2">
-            <button class="flex-1 bg-white text-black text-xs font-semibold py-2 rounded hover:bg-zinc-200 transition">Sign up</button>
-            <button class="flex-1 bg-transparent border border-zinc-600 text-white text-xs font-semibold py-2 rounded hover:bg-zinc-800 transition">Sign in</button>
-          </div>
-        </div>
+
 
         <!-- User Profile -->
         <button @click="handleLogout" class="w-full flex items-center justify-between p-2 hover:bg-zinc-800 rounded transition group">

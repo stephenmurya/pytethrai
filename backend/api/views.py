@@ -55,6 +55,7 @@ def register_view(request):
     return Response(UserSerializer(user).data)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def chat_send(request):
     chat_id = request.data.get('chatId')
     content = request.data.get('content')
@@ -191,6 +192,7 @@ def chat_send(request):
     return response
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def chat_history(request):
     workspace_id = request.query_params.get('workspace')
     
@@ -210,6 +212,7 @@ def chat_history(request):
     return Response(serializer.data)
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_chat(request, chat_id):
     try:
         chat = Chat.objects.get(id=chat_id)
